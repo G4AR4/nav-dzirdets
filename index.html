@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Map with Markers</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css">
+    <style>
+        #map {
+            height: 100vh;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    
+    <!-- Leaflet JS library -->
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <!-- Your custom script file -->
+    <script src="script.js"></script>
+
+    <script>
+        // Initialize the map
+        var map = L.map('map').setView([56.946, 24.105], 10); // Set initial center (Latvia area) and zoom
+
+        // Load and add tile layer to map
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 18,
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        // Load GeoJSON file and add markers to the map
+        fetch('Map.geojson')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error("Network response was not ok " + response.statusText);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log("GeoJSON data loaded:", data); // Debugging line to check data load
+                L.geoJSON(data, {
+                    pointToLayer: function(feature, latlng) {
+                        console.log("Original coords:", latlng); // Check coordinates before conversion
+                        var convertedCoords = LKS92WGS84.convertXYToLatLon([latlng.lng, latlng.lat]);
+                        console.log("Converted coords:", convertedCoords); // Check after conversion
+                        return L.marker([convertedCoords[0], convertedCoords[1]]);
+                    },
+                    onEachFeature: function(feature, layer) {
+                        if (feature.properties && feature.properties.name) {
+                            layer.bindPopup("<b>" + feature.properties.name + "</b><br>" + feature.properties.description);
+                        }
+                    }
+                }).addTo(map);
+            })
+            .catch(error => console.error('Error loading GeoJSON data:', error));
+    </script>
+</body>
+</html>
